@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -53,5 +55,7 @@ func main() {
 	e.DELETE("/records/:id", DeleteRecord)
 
 	// Start server
-	e.Logger.Fatal(e.Start(":2019"))
+	port := os.Getenv("PORT")
+	fmt.Println("PORT:", port)
+	e.Logger.Fatal(e.Start(port))
 }
