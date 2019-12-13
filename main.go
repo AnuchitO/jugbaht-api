@@ -44,19 +44,25 @@ func main() {
 
 	e := echo.New()
 
-	e.GET("/todos", h.list)
-	e.POST("/todos", h.create)
-	e.GET("/todos/:id", h.view)
-	e.PUT("/todos/:id", h.done)
-	e.DELETE("/todos/:id", h.remove)
+	e.GET("/records", h.list)
+	e.POST("/records", h.create)
+	e.DELETE("/records/:id", h.remove)
 
 	e.Logger.Fatal(e.Start(port))
 }
 
-type todo struct {
-	ID    bson.ObjectId `json:"id" bson:"_id"`
-	Topic string        `json:"topic" bson:"topic"`
-	Done  bool          `json:"done" bson:"done"`
+type Member struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+type Record struct {
+	ObjectID bson.ObjectId `json:"_id" bson:"_id"`
+	ID       string        `json:"id"`
+	Amount   int           `json:"amount"`
+	Payer    Member        `json:"payer"`
+	Owes     []Member      `json:"owes"`
+	Note     string        `json:"note"`
 }
 
 type handler struct {
@@ -68,35 +74,23 @@ type handler struct {
 func (h *handler) list(c echo.Context) error {
 	conn := h.mongo.Copy()
 	defer conn.Close()
-	var ts []todo
+	ts := []Record{}
 	if err := conn.DB(h.db).C(h.col).Find(nil).All(&ts); err != nil {
 		return err
 	}
-	c.JSON(http.StatusOK, ts)
-	return nil
-}
-
-func (h *handler) view(c echo.Context) error {
-	conn := h.mongo.Copy()
-	defer conn.Close()
-	var t todo
-	id := bson.ObjectIdHex(c.Param("id"))
-
-	if err := conn.DB(h.db).C(h.col).FindId(id).One(&t); err != nil {
-		return err
-	}
-	c.JSON(http.StatusOK, t)
-	return nil
+	return c.JSON(http.StatusOK, ts)
 }
 
 func (h *handler) create(c echo.Context) error {
 	id := bson.NewObjectId()
-	var t todo
+	var t Record
 	if err := c.Bind(&t); err != nil {
 		return err
 	}
-	t.ID = id
-	t.Done = false
+	t.ObjectID = id
+
+	// TODO: synchronized
+	// t.Done = false
 
 	conn := h.mongo.Copy()
 	defer conn.Close()
@@ -104,25 +98,7 @@ func (h *handler) create(c echo.Context) error {
 		return err
 	}
 
-	c.JSON(http.StatusOK, t)
-	return nil
-}
-
-func (h *handler) done(c echo.Context) error {
-	conn := h.mongo.Copy()
-	defer conn.Close()
-	var t todo
-	id := bson.ObjectIdHex(c.Param("id"))
-
-	if err := conn.DB(h.db).C(h.col).FindId(id).One(&t); err != nil {
-		return err
-	}
-	t.Done = true
-	if err := conn.DB(h.db).C(h.col).UpdateId(id, t); err != nil {
-		return err
-	}
-	c.JSON(http.StatusOK, t)
-	return nil
+	return c.JSON(http.StatusOK, t)
 }
 
 func (h *handler) remove(c echo.Context) error {
@@ -133,8 +109,8 @@ func (h *handler) remove(c echo.Context) error {
 	if err := conn.DB(h.db).C(h.col).RemoveId(id); err != nil {
 		return err
 	}
-	c.JSON(http.StatusOK, echo.Map{
-		"result": "success",
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"_id": id,
 	})
-	return nil
 }
