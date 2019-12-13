@@ -26,7 +26,7 @@ func main() {
 	mongoUser := viper.GetString("mongo.user")
 	mongoPass := viper.GetString("mongo.pass")
 	mongoDB := viper.GetString("mongo.db")
-	mongoColumn := viper.GetString("mongo.column")
+	mongoCollection := viper.GetString("mongo.collection")
 	port := fmt.Sprintf(":%v", viper.GetString("port"))
 
 	connString := fmt.Sprintf("%v:%v@%v", mongoUser, mongoPass, mongoHost)
@@ -39,7 +39,7 @@ func main() {
 	h := &handler{
 		mongo: conn,
 		db:    mongoDB,
-		col:   mongoColumn,
+		col:   mongoCollection,
 	}
 
 	e := echo.New()
