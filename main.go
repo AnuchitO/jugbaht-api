@@ -9,6 +9,7 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"github.com/spf13/viper"
 )
 
@@ -21,12 +22,14 @@ func main() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	viper.SetDefault("port", "8080")
+	viper.SetDefault("origin", "*")
 
 	mongoHost := viper.GetString("mongo.host")
 	mongoUser := viper.GetString("mongo.user")
 	mongoPass := viper.GetString("mongo.pass")
 	mongoDB := viper.GetString("mongo.db")
 	mongoCollection := viper.GetString("mongo.collection")
+	origin := viper.GetString("origin")
 	port := fmt.Sprintf(":%v", viper.GetString("port"))
 
 	connString := fmt.Sprintf("%v:%v@%v", mongoUser, mongoPass, mongoHost)
@@ -43,6 +46,13 @@ func main() {
 	}
 
 	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{origin},
+		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete, http.MethodOptions},
+	}))
 
 	e.GET("/records", h.list)
 	e.POST("/records", h.create)
